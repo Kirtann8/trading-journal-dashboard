@@ -29,8 +29,9 @@ export const AuthProvider = ({ children }) => {
       const token = getToken()
       if (token) {
         const { success, data } = await getCurrentUser()
-        if (success) {
-          setUser(data.user)
+        if (success && data) {
+          // getCurrentUser returns user data directly, not wrapped in { user: ... }
+          setUser(data.user || data)
           setIsAuthenticated(true)
         } else {
           removeToken()

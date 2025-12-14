@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
+import { UserCircleIcon, ShieldCheckIcon, ChartBarIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import ProfileForm from '../../components/ProfileForm'
 import PasswordChangeForm from '../../components/PasswordChangeForm'
 import ProfileStats from '../../components/ProfileStats'
@@ -11,6 +12,46 @@ import { useApp } from '../../context/AppContext'
 import { getProfile, updateProfile, getProfileStats } from '../../lib/api/profile'
 import { changePassword, logout, deleteAccount } from '../../lib/api/auth'
 import { handleApiError } from '../../lib/errorHandler'
+import { Card, Badge } from '../../components/ui'
+import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
+
+const ProfilePageSkeleton = () => (
+  <div className="space-y-6">
+    <div className="space-y-2">
+      <Skeleton className="h-8 w-56" />
+      <Skeleton className="h-4 w-80" />
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+      <div className="space-y-6">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    </div>
+  </div>
+)
+
+const SectionHeader = memo(function SectionHeader({ icon: Icon, title, description, badge }) {
+  return (
+    <div className="flex items-start gap-4 mb-6">
+      <div className="p-3 rounded-xl bg-primary/10">
+        <Icon className="h-6 w-6 text-primary" />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+          {badge && <Badge variant="primary">{badge}</Badge>}
+        </div>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+      </div>
+    </div>
+  )
+})
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null)
@@ -21,12 +62,7 @@ export default function ProfilePage() {
 
   const { handleError: showError, handleSuccess } = useApp()
 
-  useEffect(() => {
-    fetchProfileData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     setLoading(true)
     setError('')
 
@@ -48,7 +84,6 @@ export default function ProfilePage() {
           memberSince: profileResult.data?.createdAt
         })
       } else {
-        // Fallback to mock data if stats API fails
         setStats({
           memberSince: profileResult.data?.createdAt,
           totalTrades: 0,
@@ -67,9 +102,13 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showError])
 
-  const handleProfileUpdate = async (updatedData) => {
+  useEffect(() => {
+    fetchProfileData()
+  }, [fetchProfileData])
+
+  const handleProfileUpdate = useCallback(async (updatedData) => {
     try {
       const result = await updateProfile(updatedData)
 
@@ -84,9 +123,9 @@ export default function ProfilePage() {
       showError(appError)
       throw appError
     }
-  }
+  }, [handleSuccess, showError])
 
-  const handlePasswordChange = async (passwordData) => {
+  const handlePasswordChange = useCallback(async (passwordData) => {
     try {
       const result = await changePassword(passwordData)
 
@@ -104,9 +143,9 @@ export default function ProfilePage() {
       showError(appError)
       throw appError
     }
-  }
+  }, [handleSuccess, showError])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await logout()
       router.push('/login')
@@ -114,9 +153,9 @@ export default function ProfilePage() {
       const appError = handleApiError(error, { action: 'logout' })
       showError(appError)
     }
-  }
+  }, [router, showError])
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = useCallback(async () => {
     try {
       const result = await deleteAccount()
 
@@ -129,24 +168,18 @@ export default function ProfilePage() {
       const appError = handleApiError(error, { action: 'deleteAccount' })
       showError(appError)
     }
-  }
+  }, [router, showError])
 
   if (loading) {
-    return (
-      <div className="space-y-8 animate-pulse">
-        <div className="h-24 bg-secondary/50 rounded-xl"></div>
-        <div className="h-64 bg-secondary/50 rounded-xl"></div>
-        <div className="h-64 bg-secondary/50 rounded-xl"></div>
-      </div>
-    )
+    return <ProfilePageSkeleton />
   }
 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="text-3xl font-bold text-foreground mb-2">Profile Settings</h1>
+        <p className="text-muted-foreground">
           Manage your account settings and preferences
         </p>
       </div>
@@ -162,29 +195,66 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* Profile Information Section */}
-      <ProfileForm
-        profile={profile}
-        onUpdate={handleProfileUpdate}
-        isLoading={loading}
-      />
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Profile & Password */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Profile Information Section */}
+          <Card variant="glass" className="p-6">
+            <SectionHeader 
+              icon={UserCircleIcon}
+              title="Profile Information"
+              description="Update your personal details and trading preferences"
+            />
+            <ProfileForm
+              profile={profile}
+              onUpdate={handleProfileUpdate}
+              isLoading={loading}
+            />
+          </Card>
 
-      {/* Account Statistics Section */}
-      <ProfileStats
-        stats={stats}
-        isLoading={loading}
-      />
+          {/* Password Change Section */}
+          <Card variant="glass" className="p-6">
+            <SectionHeader 
+              icon={ShieldCheckIcon}
+              title="Security"
+              description="Manage your password and account security"
+            />
+            <PasswordChangeForm
+              onPasswordChange={handlePasswordChange}
+            />
+          </Card>
+        </div>
 
-      {/* Password Change Section */}
-      <PasswordChangeForm
-        onPasswordChange={handlePasswordChange}
-      />
+        {/* Right Column - Stats & Danger Zone */}
+        <div className="space-y-6">
+          {/* Account Statistics Section */}
+          <Card variant="glass" className="p-6">
+            <SectionHeader 
+              icon={ChartBarIcon}
+              title="Statistics"
+              badge={stats?.totalTrades ? `${stats.totalTrades} trades` : null}
+            />
+            <ProfileStats
+              stats={stats}
+              isLoading={loading}
+            />
+          </Card>
 
-      {/* Danger Zone Section */}
-      <DangerZone
-        onLogout={handleLogout}
-        onDeleteAccount={handleDeleteAccount}
-      />
+          {/* Danger Zone Section */}
+          <Card variant="glass" className="p-6 border-destructive/30">
+            <SectionHeader 
+              icon={ExclamationTriangleIcon}
+              title="Danger Zone"
+              description="Irreversible account actions"
+            />
+            <DangerZone
+              onLogout={handleLogout}
+              onDeleteAccount={handleDeleteAccount}
+            />
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

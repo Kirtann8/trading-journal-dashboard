@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, memo, useCallback } from 'react'
 import { 
   CheckCircleIcon, 
   ExclamationCircleIcon, 
@@ -9,7 +9,7 @@ import {
   XMarkIcon 
 } from '@heroicons/react/24/outline'
 
-const Toast = ({ toast, onRemove }) => {
+const Toast = memo(function Toast({ toast, onRemove }) {
   const { id, message, type, duration } = toast
 
   useEffect(() => {
@@ -21,73 +21,104 @@ const Toast = ({ toast, onRemove }) => {
     }
   }, [id, duration, onRemove])
 
-  const getToastStyles = () => {
-    switch (type) {
-      case 'success':
-        return 'bg-success-50 border-success-200 text-success-800'
-      case 'error':
-        return 'bg-danger-50 border-danger-200 text-danger-800'
-      case 'warning':
-        return 'bg-warning-50 border-warning-200 text-warning-800'
-      case 'info':
-      default:
-        return 'bg-primary-50 border-primary-200 text-primary-800'
-    }
+  const handleRemove = useCallback(() => {
+    onRemove(id)
+  }, [id, onRemove])
+
+  const toastConfig = {
+    success: {
+      bg: 'bg-success/10',
+      border: 'border-success/30',
+      text: 'text-success',
+      glow: 'shadow-glow-success',
+      icon: CheckCircleIcon,
+    },
+    error: {
+      bg: 'bg-destructive/10',
+      border: 'border-destructive/30',
+      text: 'text-destructive',
+      glow: 'shadow-glow-destructive',
+      icon: ExclamationCircleIcon,
+    },
+    warning: {
+      bg: 'bg-warning/10',
+      border: 'border-warning/30',
+      text: 'text-warning',
+      glow: 'shadow-glow-warning',
+      icon: ExclamationTriangleIcon,
+    },
+    info: {
+      bg: 'bg-primary/10',
+      border: 'border-primary/30',
+      text: 'text-primary',
+      glow: 'shadow-glow',
+      icon: InformationCircleIcon,
+    },
   }
 
-  const getIcon = () => {
-    const iconClass = 'h-5 w-5 flex-shrink-0'
-    switch (type) {
-      case 'success':
-        return <CheckCircleIcon className={`${iconClass} text-success-500`} />
-      case 'error':
-        return <ExclamationCircleIcon className={`${iconClass} text-danger-500`} />
-      case 'warning':
-        return <ExclamationTriangleIcon className={`${iconClass} text-warning-500`} />
-      case 'info':
-      default:
-        return <InformationCircleIcon className={`${iconClass} text-primary-500`} />
-    }
-  }
+  const config = toastConfig[type] || toastConfig.info
+  const IconComponent = config.icon
 
   return (
-    <div className={`max-w-sm w-full border rounded-lg shadow-lg animate-slide-up ${getToastStyles()}`}>
+    <div 
+      className={`
+        max-w-sm w-full rounded-xl border backdrop-blur-xl
+        ${config.bg} ${config.border}
+        shadow-elevated ${config.glow}
+        animate-scale-in
+        transition-all duration-200
+      `}
+    >
       <div className="p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            {getIcon()}
+        <div className="flex items-start gap-3">
+          <div className={`flex-shrink-0 p-1.5 rounded-lg ${config.bg}`}>
+            <IconComponent className={`h-5 w-5 ${config.text}`} />
           </div>
-          <div className="ml-3 w-0 flex-1">
-            <p className="text-sm font-medium">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground leading-relaxed">
               {message}
             </p>
           </div>
-          <div className="ml-4 flex-shrink-0 flex">
-            <button
-              onClick={() => onRemove(id)}
-              className="inline-flex text-gray-400 hover:text-gray-600 focus-ring rounded-md"
-            >
-              <span className="sr-only">Close</span>
-              <XMarkIcon className="h-5 w-5" />
-            </button>
-          </div>
+          <button
+            onClick={handleRemove}
+            className="flex-shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all"
+          >
+            <span className="sr-only">Close</span>
+            <XMarkIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
+      
+      {/* Progress bar for auto-dismiss */}
+      {duration > 0 && (
+        <div className="h-1 w-full bg-secondary/30 rounded-b-xl overflow-hidden">
+          <div 
+            className={`h-full ${config.text.replace('text-', 'bg-')} animate-shrink-width`}
+            style={{ 
+              animationDuration: `${duration}ms`,
+              animationTimingFunction: 'linear',
+              animationFillMode: 'forwards'
+            }}
+          />
+        </div>
+      )}
     </div>
   )
-}
+})
 
-const ToastContainer = ({ toasts, onRemove }) => {
+const ToastContainer = memo(function ToastContainer({ toasts, onRemove }) {
   if (!toasts.length) return null
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-[100] space-y-3 pointer-events-none">
       {toasts.map((toast) => (
-        <Toast key={toast.id} toast={toast} onRemove={onRemove} />
+        <div key={toast.id} className="pointer-events-auto">
+          <Toast toast={toast} onRemove={onRemove} />
+        </div>
       ))}
     </div>
   )
-}
+})
 
 export default ToastContainer
 export { Toast }

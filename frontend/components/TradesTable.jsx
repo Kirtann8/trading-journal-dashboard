@@ -1,33 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo, useCallback } from 'react'
 import { PencilIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { formatCurrency, formatDate } from '../lib/dashboard-utils'
 import { deleteTrade } from '../lib/api/trades'
+import { Card, Badge, Button, Modal } from '@/components/ui'
 
-export default function TradesTable({ trades, onUpdate }) {
+const TradesTable = memo(function TradesTable({ trades, onUpdate }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, tradeId: null, tradeName: '' })
   const [deleting, setDeleting] = useState(false)
 
-  const handleSort = (key) => {
-    let direction = 'asc'
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc'
-    }
-    setSortConfig({ key, direction })
-  }
+  const handleSort = useCallback((key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }, [])
 
-  const getSortIcon = (columnKey) => {
+  const getSortIcon = useCallback((columnKey) => {
     if (sortConfig.key !== columnKey) {
-      return <ChevronUpIcon className="h-4 w-4 text-muted-foreground/50" />
+      return <ChevronUpIcon className="h-4 w-4 text-muted-foreground/30" />
     }
     return sortConfig.direction === 'asc' ? (
       <ChevronUpIcon className="h-4 w-4 text-primary" />
     ) : (
       <ChevronDownIcon className="h-4 w-4 text-primary" />
     )
-  }
+  }, [sortConfig])
 
   const sortedTrades = [...trades].sort((a, b) => {
     if (!sortConfig.key) return 0
@@ -46,19 +46,19 @@ export default function TradesTable({ trades, onUpdate }) {
     return 'text-muted-foreground'
   }
 
-  const handleEdit = (trade) => {
+  const handleEdit = useCallback((trade) => {
     window.location.href = `/trades/${trade._id}/edit`
-  }
+  }, [])
 
-  const handleDeleteClick = (trade) => {
+  const handleDeleteClick = useCallback((trade) => {
     setDeleteConfirm({
       show: true,
       tradeId: trade._id,
       tradeName: `${trade.symbol} ${trade.side.toUpperCase()}`
     })
-  }
+  }, [])
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     setDeleting(true)
     try {
       const result = await deleteTrade(deleteConfirm.tradeId)
@@ -73,150 +73,103 @@ export default function TradesTable({ trades, onUpdate }) {
     } finally {
       setDeleting(false)
     }
-  }
+  }, [deleteConfirm.tradeId, onUpdate])
 
-  const handleDeleteCancel = () => {
+  const handleDeleteCancel = useCallback(() => {
     setDeleteConfirm({ show: false, tradeId: null, tradeName: '' })
-  }
+  }, [])
+
+  const TableHeader = memo(({ label, sortKey }) => (
+    <th
+      onClick={() => handleSort(sortKey)}
+      className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors group"
+    >
+      <div className="flex items-center gap-2">
+        <span>{label}</span>
+        <span className="opacity-50 group-hover:opacity-100 transition-opacity">
+          {getSortIcon(sortKey)}
+        </span>
+      </div>
+    </th>
+  ))
+  TableHeader.displayName = 'TableHeader'
 
   return (
     <>
-      <div className="glass-card rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card variant="glass" padding="none" className="overflow-hidden">
+        <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full">
-            <thead className="bg-secondary/50 border-b border-border/50">
+            <thead className="bg-secondary/30 border-b border-border/50">
               <tr>
-                <th
-                  onClick={() => handleSort('symbol')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Symbol</span>
-                    {getSortIcon('symbol')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('side')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Side</span>
-                    {getSortIcon('side')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('entryPrice')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Entry Price</span>
-                    {getSortIcon('entryPrice')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('exitPrice')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Exit Price</span>
-                    {getSortIcon('exitPrice')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('quantity')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Quantity</span>
-                    {getSortIcon('quantity')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('pnl')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>PnL</span>
-                    {getSortIcon('pnl')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('createdAt')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Date</span>
-                    {getSortIcon('createdAt')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('status')}
-                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Status</span>
-                    {getSortIcon('status')}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <TableHeader label="Symbol" sortKey="symbol" />
+                <TableHeader label="Side" sortKey="side" />
+                <TableHeader label="Entry Price" sortKey="entryPrice" />
+                <TableHeader label="Exit Price" sortKey="exitPrice" />
+                <TableHeader label="Quantity" sortKey="quantity" />
+                <TableHeader label="P&L" sortKey="pnl" />
+                <TableHeader label="Date" sortKey="createdAt" />
+                <TableHeader label="Status" sortKey="status" />
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className="divide-y divide-border/30">
               {sortedTrades.map((trade, index) => (
                 <tr
                   key={trade._id}
-                  className="hover:bg-secondary/30 transition-colors"
+                  className="hover:bg-secondary/20 transition-colors group"
+                  style={{ animationDelay: `${index * 30}ms` }}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                    {trade.symbol}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${trade.side === 'buy'
-                      ? 'bg-success/10 text-success'
-                      : 'bg-destructive/10 text-destructive'
-                      }`}>
-                      {trade.side.toUpperCase()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-semibold text-foreground">
+                      {trade.symbol}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge 
+                      variant={trade.side === 'buy' ? 'success' : 'danger'}
+                      dot
+                    >
+                      {trade.side.toUpperCase()}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground font-mono">
                     {formatCurrency(trade.entryPrice)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {trade.exitPrice ? formatCurrency(trade.exitPrice) : '-'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground font-mono">
+                    {trade.exitPrice ? formatCurrency(trade.exitPrice) : '—'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground font-mono">
                     {trade.quantity}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <span className={getPnLColor(trade.profitLoss)}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`text-sm font-bold font-mono ${getPnLColor(trade.profitLoss)}`}>
                       {formatCurrency(trade.profitLoss || 0)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {formatDate(trade.createdAt)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${trade.status === 'open'
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-secondary text-muted-foreground'
-                      }`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge 
+                      variant={trade.status === 'open' ? 'primary' : 'default'}
+                    >
                       {trade.status.toUpperCase()}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    <div className="flex space-x-3">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEdit(trade)}
-                        className="text-primary hover:text-primary/80 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
                         title="Edit trade"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(trade)}
-                        className="text-destructive hover:text-destructive/80 transition-colors"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                         title="Delete trade"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -228,47 +181,49 @@ export default function TradesTable({ trades, onUpdate }) {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
-      {/* Delete Confirmation Modal - Rendered at root level */}
-      {deleteConfirm.show && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm overflow-y-auto h-full w-full z-[99999] flex items-center justify-center p-4"
-          onClick={handleDeleteCancel}
-        >
-          <div
-            className="relative bg-card border-2 border-destructive/50 w-full max-w-md shadow-2xl rounded-xl p-8 animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold text-foreground mb-4">⚠️ Delete Trade</h3>
-            <p className="text-muted-foreground mb-2 leading-relaxed">
-              Are you sure you want to delete the trade:
-            </p>
-            <p className="text-lg font-bold text-foreground mb-4">
-              {deleteConfirm.tradeName}
-            </p>
-            <p className="text-destructive font-medium mb-6">
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirm.show}
+        onClose={handleDeleteCancel}
+        title="Delete Trade"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-muted-foreground">
+            Are you sure you want to delete the trade:
+          </p>
+          <p className="text-lg font-bold text-foreground">
+            {deleteConfirm.tradeName}
+          </p>
+          <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20">
+            <p className="text-destructive text-sm font-medium">
               ⚠️ This action cannot be undone.
             </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={handleDeleteCancel}
-                disabled={deleting}
-                className="flex-1 px-4 py-3 border-2 border-border bg-secondary/20 hover:bg-secondary/40 text-foreground rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-                className="flex-1 px-4 py-3 bg-destructive hover:bg-destructive/90 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-destructive/30"
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              onClick={handleDeleteCancel}
+              disabled={deleting}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              isLoading={deleting}
+              className="flex-1"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
     </>
   )
-}
+})
+
+export default TradesTable

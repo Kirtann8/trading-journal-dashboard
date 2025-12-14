@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
+import { Input, Button, Card } from '@/components/ui'
+import { 
+  EnvelopeIcon, 
+  LockClosedIcon, 
+  UserIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline'
 
 const validationRules = {
   email: {
@@ -55,8 +64,6 @@ const validationRules = {
 export default function RegisterPage() {
   const router = useRouter()
   const { register, isAuthenticated, error: authError } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [success, setSuccess] = useState(false)
 
   const { formData, errors, isSubmitting, setFormData, onSubmit } = useForm(
@@ -85,204 +92,224 @@ export default function RegisterPage() {
 
   const passwordsMatch = formData.password === formData.confirmPassword
 
+  // Password strength indicator
+  const getPasswordStrength = () => {
+    const password = formData.password
+    if (!password) return { strength: 0, label: '', color: '' }
+    
+    let strength = 0
+    if (password.length >= 8) strength++
+    if (/[A-Z]/.test(password)) strength++
+    if (/[a-z]/.test(password)) strength++
+    if (/[0-9]/.test(password)) strength++
+    if (/[^A-Za-z0-9]/.test(password)) strength++
+    
+    const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong']
+    const colors = ['bg-destructive', 'bg-orange-500', 'bg-amber-500', 'bg-success', 'bg-success']
+    
+    return {
+      strength,
+      label: labels[strength - 1] || '',
+      color: colors[strength - 1] || 'bg-muted'
+    }
+  }
+
+  const passwordStrength = getPasswordStrength()
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Start tracking your crypto trades
+    <div className="min-h-screen flex relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="fixed inset-0 mesh-bg pointer-events-none" />
+      <div className="fixed top-0 right-0 w-[600px] h-[600px] orb-accent opacity-20 -translate-y-1/2 translate-x-1/4" />
+      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] orb-primary opacity-15 translate-y-1/2 -translate-x-1/4" />
+      
+      {/* Left side - Branding (hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-background to-primary/10" />
+        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow">
+              <SparklesIcon className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-gradient">TradingJournal</span>
+          </div>
+          
+          <h1 className="text-4xl xl:text-5xl font-bold text-foreground leading-tight">
+            Start your<br />
+            <span className="text-gradient">trading journey</span>
+          </h1>
+          
+          <p className="mt-6 text-lg text-muted-foreground max-w-md">
+            Join thousands of traders who use TradingJournal to track, analyze, and improve their trading performance.
           </p>
+          
+          <div className="mt-10 space-y-4">
+            {[
+              'Track all your trades in one place',
+              'Get detailed performance analytics',
+              'Identify patterns in your trading',
+              'Improve your win rate over time',
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-3 text-muted-foreground">
+                <div className="w-6 h-6 rounded-full bg-success/20 flex items-center justify-center">
+                  <CheckCircleIcon className="w-4 h-4 text-success" />
+                </div>
+                {feature}
+              </div>
+            ))}
+          </div>
         </div>
-
-        {success && (
-          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-            <p className="text-green-800 text-sm">
-              Account created successfully! Redirecting to login...
-            </p>
+      </div>
+      
+      {/* Right side - Register Form */}
+      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow">
+              <SparklesIcon className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gradient">TradingJournal</span>
           </div>
-        )}
-
-        {authError && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-red-800 text-sm">{authError}</p>
-          </div>
-        )}
-
-        <form className="mt-8 space-y-6" onSubmit={(e) => {
-          e.preventDefault()
-          onSubmit(handleSubmit)
-        }}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => setFormData('email', e.target.value)}
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
+          
+          <Card variant="glass" padding="lg" className="animate-fade-up">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-foreground">Create account</h2>
+              <p className="mt-2 text-muted-foreground">
+                Start tracking your trades today
+              </p>
             </div>
 
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
+            {success && (
+              <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <CheckCircleIcon className="w-5 h-5 text-success" />
+                  <p className="text-success text-sm font-medium">
+                    Account created! Redirecting to login...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {authError && (
+              <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 animate-fade-in">
+                <p className="text-destructive text-sm font-medium">{authError}</p>
+              </div>
+            )}
+
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              onSubmit(handleSubmit)
+            }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="First Name"
+                  type="text"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData('firstName', e.target.value)}
+                  error={errors.firstName}
+                  autoComplete="given-name"
+                />
+                <Input
+                  label="Last Name"
+                  type="text"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData('lastName', e.target.value)}
+                  error={errors.lastName}
+                  autoComplete="family-name"
+                />
+              </div>
+
+              <Input
+                label="Username"
                 type="text"
-                autoComplete="username"
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.username ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                placeholder="Choose a username"
+                placeholder="johndoe"
                 value={formData.username}
                 onChange={(e) => setFormData('username', e.target.value)}
+                error={errors.username}
+                leftIcon={<UserIcon className="w-5 h-5" />}
+                autoComplete="username"
               />
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-              )}
-            </div>
 
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                First Name
-              </label>
-              <input
-                id="firstName"
-                name="firstName"
-                type="text"
-                autoComplete="given-name"
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.firstName ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                placeholder="Enter your first name"
-                value={formData.firstName}
-                onChange={(e) => setFormData('firstName', e.target.value)}
+              <Input
+                label="Email address"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={(e) => setFormData('email', e.target.value)}
+                error={errors.email}
+                leftIcon={<EnvelopeIcon className="w-5 h-5" />}
+                autoComplete="email"
               />
-              {errors.firstName && (
-                <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
-              )}
-            </div>
 
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                Last Name
-              </label>
-              <input
-                id="lastName"
-                name="lastName"
-                type="text"
-                autoComplete="family-name"
-                className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  errors.lastName ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                placeholder="Enter your last name"
-                value={formData.lastName}
-                onChange={(e) => setFormData('lastName', e.target.value)}
-              />
-              {errors.lastName && (
-                <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  className={`appearance-none relative block w-full px-3 py-2 pr-10 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                  placeholder="Create a password"
+              <div>
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData('password', e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? '🙈' : '👁️'}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <div className="mt-1 relative">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  error={errors.password}
+                  leftIcon={<LockClosedIcon className="w-5 h-5" />}
                   autoComplete="new-password"
-                  className={`appearance-none relative block w-full px-3 py-2 pr-10 border ${
-                    errors.confirmPassword || (!passwordsMatch && formData.confirmPassword) ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData('confirmPassword', e.target.value)}
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? '🙈' : '👁️'}
-                </button>
+                {formData.password && (
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            i < passwordStrength.strength ? passwordStrength.color : 'bg-secondary'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{passwordStrength.label}</p>
+                  </div>
+                )}
               </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
-              {!passwordsMatch && formData.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">Passwords do not match</p>
-              )}
+
+              <Input
+                label="Confirm Password"
+                type="password"
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData('confirmPassword', e.target.value)}
+                error={errors.confirmPassword || (!passwordsMatch && formData.confirmPassword ? 'Passwords do not match' : '')}
+                success={passwordsMatch && formData.confirmPassword}
+                leftIcon={<LockClosedIcon className="w-5 h-5" />}
+                autoComplete="new-password"
+              />
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                isLoading={isSubmitting}
+                disabled={!passwordsMatch}
+                className="w-full mt-2"
+                rightIcon={!isSubmitting && <ArrowRightIcon className="w-4 h-4" />}
+              >
+                {isSubmitting ? 'Creating account...' : 'Create account'}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-6 border-t border-border/50 text-center">
+              <p className="text-muted-foreground">
+                Already have an account?{' '}
+                <Link 
+                  href="/login" 
+                  className="font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Sign in
+                </Link>
+              </p>
             </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting || !passwordsMatch}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in here
-              </Link>
-            </p>
-          </div>
-        </form>
+          </Card>
+        </div>
       </div>
     </div>
   )

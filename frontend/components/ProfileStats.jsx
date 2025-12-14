@@ -49,14 +49,22 @@ export default function ProfileStats({ stats, isLoading }) {
     },
     {
       label: 'Best Trade',
-      value: formatCurrency(stats?.bestTrade || 0),
+      value: stats?.bestTrade?.profitLoss != null 
+        ? formatCurrency(stats.bestTrade.profitLoss) 
+        : (stats?.bestTrade != null && typeof stats.bestTrade === 'number' 
+          ? formatCurrency(stats.bestTrade) 
+          : '$0.00'),
       icon: TrendingUpIcon,
       color: 'text-success',
       valueColor: 'text-success'
     },
     {
       label: 'Worst Trade',
-      value: formatCurrency(stats?.worstTrade || 0),
+      value: stats?.worstTrade?.profitLoss != null 
+        ? formatCurrency(stats.worstTrade.profitLoss) 
+        : (stats?.worstTrade != null && typeof stats.worstTrade === 'number' 
+          ? formatCurrency(stats.worstTrade) 
+          : '$0.00'),
       icon: TrendingDownIcon,
       color: 'text-destructive',
       valueColor: 'text-destructive'
@@ -64,40 +72,36 @@ export default function ProfileStats({ stats, isLoading }) {
   ]
 
   return (
-    <div className="glass-card rounded-xl p-6">
-      <h2 className="text-xl font-semibold text-foreground mb-6">Account Statistics</h2>
+    <div className="space-y-3">
+      {statItems.map((item, index) => {
+        const IconComponent = item.icon
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {statItems.map((item, index) => {
-          const IconComponent = item.icon
-
-          return (
-            <div
-              key={index}
-              className="p-4 border border-border/50 rounded-lg hover:bg-secondary/30 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">{item.label}</p>
-                  <p className={`text-lg font-bold ${item.valueColor || 'text-foreground'}`}>
-                    {item.value}
-                  </p>
-                </div>
-                <div className={`p-2 rounded-md bg-secondary/50`}>
-                  <IconComponent className={`h-5 w-5 ${item.color}`} />
-                </div>
+        return (
+          <div
+            key={index}
+            className="p-4 border border-border/50 rounded-xl hover:bg-secondary/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl bg-secondary/50`}>
+                <IconComponent className={`h-5 w-5 ${item.color}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground mb-0.5">{item.label}</p>
+                <p className={`text-base font-bold truncate ${item.valueColor || 'text-foreground'}`}>
+                  {item.value}
+                </p>
               </div>
             </div>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
 
       {/* Additional Stats */}
       {stats?.avgTradeDuration && (
-        <div className="mt-6 pt-6 border-t border-border/50">
+        <div className="mt-4 pt-4 border-t border-border/50">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Average Trade Duration</p>
-            <p className="text-lg font-semibold text-foreground mt-1">
+            <p className="text-xs text-muted-foreground">Average Trade Duration</p>
+            <p className="text-base font-semibold text-foreground mt-1">
               {stats.avgTradeDuration} days
             </p>
           </div>
