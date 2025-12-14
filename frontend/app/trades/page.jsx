@@ -1,17 +1,90 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, memo, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { PlusIcon, ArrowPathIcon, TableCellsIcon, Squares2X2Icon, DocumentChartBarIcon } from '@heroicons/react/24/outline'
 import TradeFilters from '../../components/TradeFilters'
 import TradesTable from '../../components/TradesTable'
 import TradesCardView from '../../components/TradesCardView'
 import Pagination from '../../components/Pagination'
-import SkeletonLoader from '../../components/SkeletonLoader'
 import ErrorFallback from '../../components/ErrorFallback'
 import { useApp } from '../../context/AppContext'
 import { getTrades } from '../../lib/api/trades'
 import { recalculateTrades } from '../../lib/api/recalculate'
 import { handleApiError } from '../../lib/errorHandler'
+import { Card, Button, Badge } from '../../components/ui'
+import { Skeleton, SkeletonTable } from '../../components/ui/Skeleton'
+
+const TradesPageSkeleton = () => (
+  <div className="space-y-6">
+    <div className="flex justify-between items-center">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <Skeleton className="h-10 w-28" />
+    </div>
+    <Card variant="glass" className="p-4">
+      <div className="grid grid-cols-4 gap-4">
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
+        <Skeleton className="h-10" />
+      </div>
+    </Card>
+    <SkeletonTable rows={5} columns={8} />
+  </div>
+)
+
+const EmptyState = memo(function EmptyState({ onCreateTrade }) {
+  return (
+    <Card variant="glass" className="p-12 text-center">
+      <div className="max-w-md mx-auto">
+        <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <DocumentChartBarIcon className="w-10 h-10 text-primary" />
+        </div>
+        <h3 className="text-2xl font-bold text-foreground mb-3">No trades yet</h3>
+        <p className="text-muted-foreground mb-8 leading-relaxed">
+          Start tracking your trading journey by logging your first trade. 
+          Every successful trader keeps a detailed journal.
+        </p>
+        <Button onClick={onCreateTrade} size="lg">
+          <PlusIcon className="h-5 w-5 mr-2" />
+          Create Your First Trade
+        </Button>
+      </div>
+    </Card>
+  )
+})
+
+const ViewToggle = memo(function ViewToggle({ viewMode, onViewModeChange }) {
+  return (
+    <div className="flex items-center gap-1 p-1 bg-secondary/30 rounded-lg">
+      <button
+        onClick={() => onViewModeChange('table')}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+          viewMode === 'table' 
+            ? 'bg-primary text-white shadow-md' 
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <TableCellsIcon className="h-4 w-4" />
+        <span className="hidden sm:inline">Table</span>
+      </button>
+      <button
+        onClick={() => onViewModeChange('cards')}
+        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+          viewMode === 'cards' 
+            ? 'bg-primary text-white shadow-md' 
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <Squares2X2Icon className="h-4 w-4" />
+        <span className="hidden sm:inline">Cards</span>
+      </button>
+    </div>
+  )
+})
 
 function TradesPageContent() {
   const [trades, setTrades] = useState([])
@@ -39,7 +112,7 @@ function TradesPageContent() {
     limit: parseInt(searchParams.get('limit')) || 20
   })
 
-  const fetchTrades = async () => {
+  const fetchTrades = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -47,7 +120,6 @@ function TradesPageContent() {
       const result = await getTrades(filters)
 
       if (result.success && result.data) {
-        // Handle pagination data structure
         const tradesData = result.data.trades || result.data || []
         const paginationData = result.data.pagination || {}
 
@@ -70,15 +142,15 @@ function TradesPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, showError])
 
-  const handleRecalculate = async () => {
+  const handleRecalculate = useCallback(async () => {
     setRecalculating(true)
     try {
       const result = await recalculateTrades()
       if (result.success) {
         handleSuccess('P&L recalculated successfully!')
-        fetchTrades() // Refresh the trades list
+        fetchTrades()
       } else {
         showError({ message: result.error || 'Failed to recalculate P&L' })
       }
@@ -87,25 +159,24 @@ function TradesPageContent() {
     } finally {
       setRecalculating(false)
     }
-  }
+  }, [fetchTrades, handleSuccess, showError])
 
   useEffect(() => {
     fetchTrades()
-  }, [filters])
+  }, [fetchTrades])
 
-  const handleFilterChange = (newFilters) => {
+  const handleFilterChange = useCallback((newFilters) => {
     const updatedFilters = { ...filters, ...newFilters, page: 1 }
     setFilters(updatedFilters)
 
-    // Update URL params
     const params = new URLSearchParams()
     Object.entries(updatedFilters).forEach(([key, value]) => {
       if (value) params.set(key, value)
     })
     router.push(`/trades?${params.toString()}`)
-  }
+  }, [filters, router])
 
-  const handlePageChange = (page) => {
+  const handlePageChange = useCallback((page) => {
     const updatedFilters = { ...filters, page }
     setFilters(updatedFilters)
 
@@ -114,36 +185,44 @@ function TradesPageContent() {
       if (value) params.set(key, value)
     })
     router.push(`/trades?${params.toString()}`)
-  }
+  }, [filters, router])
 
-  const handleTradeUpdate = () => {
+  const handleTradeUpdate = useCallback(() => {
     fetchTrades()
-  }
+  }, [fetchTrades])
 
   if (loading) {
-    return (
-      <div className="space-y-8 animate-pulse">
-        <div className="h-32 bg-secondary/50 rounded-xl"></div>
-        <div className="h-64 bg-secondary/50 rounded-xl"></div>
-      </div>
-    )
+    return <TradesPageSkeleton />
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Your Trades</h1>
-          <p className="text-muted-foreground mt-1">Manage and track your trading activity</p>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-foreground">Your Trades</h1>
+            {totalCount > 0 && (
+              <Badge variant="primary">{totalCount} total</Badge>
+            )}
+          </div>
+          <p className="text-muted-foreground">Manage and track your trading activity</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <button
-            onClick={() => router.push('/trades/create')}
-            className="btn-primary"
+        <div className="flex flex-wrap items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          <Button
+            variant="secondary"
+            onClick={handleRecalculate}
+            isLoading={recalculating}
+            disabled={recalculating || trades.length === 0}
           >
+            <ArrowPathIcon className={`h-4 w-4 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+            Recalculate P&L
+          </Button>
+          <Button onClick={() => router.push('/trades/create')}>
+            <PlusIcon className="h-4 w-4 mr-2" />
             Add Trade
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -167,21 +246,7 @@ function TradesPageContent() {
 
       {/* Empty State */}
       {!loading && !error && Array.isArray(trades) && trades.length === 0 && (
-        <div className="glass-card rounded-xl p-12 text-center">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-foreground mb-2">No trades found</h3>
-          <p className="text-muted-foreground mb-6">Start your journey by logging your first trade.</p>
-          <button
-            onClick={() => router.push('/trades/create')}
-            className="btn-primary"
-          >
-            Create Your First Trade
-          </button>
-        </div>
+        <EmptyState onCreateTrade={() => router.push('/trades/create')} />
       )}
 
       {/* Trades Display */}
@@ -210,10 +275,7 @@ function TradesPageContent() {
 
 export default function TradesPage() {
   return (
-    <Suspense fallback={<div className="space-y-8 animate-pulse">
-      <div className="h-32 bg-secondary/50 rounded-xl"></div>
-      <div className="h-64 bg-secondary/50 rounded-xl"></div>
-    </div>}>
+    <Suspense fallback={<TradesPageSkeleton />}>
       <TradesPageContent />
     </Suspense>
   )

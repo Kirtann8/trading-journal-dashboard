@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { useState, memo, useCallback } from 'react'
+import { ChevronLeftIcon, ChevronRightIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/24/outline'
+import { Card } from '@/components/ui'
 
-export default function Pagination({
+const Pagination = memo(function Pagination({
   currentPage = 1,
   totalPages = 1,
   totalCount = 0,
@@ -19,16 +20,16 @@ export default function Pagination({
   const safeTotalCount = Number(totalCount) || 0
   const safeItemsPerPage = Number(itemsPerPage) || 20
 
-  const handleJumpToPage = (e) => {
+  const handleJumpToPage = useCallback((e) => {
     e.preventDefault()
     const page = parseInt(jumpToPage)
     if (page >= 1 && page <= safeTotalPages) {
       onPageChange(page)
       setJumpToPage('')
     }
-  }
+  }, [jumpToPage, safeTotalPages, onPageChange])
 
-  const getPageNumbers = () => {
+  const getPageNumbers = useCallback(() => {
     const pages = []
     const maxVisible = 5
 
@@ -56,111 +57,166 @@ export default function Pagination({
     }
 
     return pages
-  }
+  }, [safeCurrentPage, safeTotalPages])
 
   const startItem = Math.max(1, (safeCurrentPage - 1) * safeItemsPerPage + 1)
   const endItem = Math.min(safeCurrentPage * safeItemsPerPage, safeTotalCount)
 
+  const PageButton = memo(function PageButton({ page, isActive, disabled, onClick }) {
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`
+          relative inline-flex items-center justify-center min-w-[40px] h-10 px-3 text-sm font-medium rounded-lg transition-all
+          ${isActive 
+            ? 'bg-primary text-white shadow-md shadow-primary/30' 
+            : disabled
+              ? 'text-muted-foreground cursor-default'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+          }
+        `}
+      >
+        {page}
+      </button>
+    )
+  })
+
+  const NavButton = memo(function NavButton({ direction, onClick, disabled, double = false }) {
+    const icons = {
+      left: double ? ChevronDoubleLeftIcon : ChevronLeftIcon,
+      right: double ? ChevronDoubleRightIcon : ChevronRightIcon,
+    }
+    const Icon = icons[direction]
+    
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`
+          inline-flex items-center justify-center w-10 h-10 rounded-lg transition-all
+          ${disabled 
+            ? 'text-muted-foreground/30 cursor-not-allowed' 
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+          }
+        `}
+      >
+        <Icon className="h-5 w-5" />
+      </button>
+    )
+  })
+
   return (
-    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
-      <div className="flex-1 flex justify-between sm:hidden">
-        {/* Mobile pagination */}
+    <Card variant="glass" className="px-4 py-3">
+      {/* Mobile pagination */}
+      <div className="flex items-center justify-between sm:hidden">
         <button
           onClick={() => onPageChange(safeCurrentPage - 1)}
           disabled={safeCurrentPage === 1}
-          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm font-medium text-foreground bg-secondary/30 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Previous
         </button>
+        <span className="text-sm text-muted-foreground">
+          {safeCurrentPage} / {safeTotalPages}
+        </span>
         <button
           onClick={() => onPageChange(safeCurrentPage + 1)}
           disabled={safeCurrentPage === safeTotalPages}
-          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm font-medium text-foreground bg-secondary/30 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Next
         </button>
       </div>
 
-      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-        <div className="flex items-center space-x-4">
-          <p className="text-sm text-gray-700">
-            Showing <span className="font-medium">{startItem}</span> to{' '}
-            <span className="font-medium">{endItem}</span> of{' '}
-            <span className="font-medium">{totalCount}</span> results
+      {/* Desktop pagination */}
+      <div className="hidden sm:flex sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-semibold text-foreground">{startItem}</span> to{' '}
+            <span className="font-semibold text-foreground">{endItem}</span> of{' '}
+            <span className="font-semibold text-foreground">{safeTotalCount}</span> results
           </p>
 
           {/* Items per page selector */}
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-gray-700">Show:</label>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground">Show:</label>
             <select
               value={safeItemsPerPage}
               onChange={(e) => onLimitChange(parseInt(e.target.value))}
-              className="border border-gray-300 rounded-md text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input-field h-9 w-20 text-sm"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
+              <option value={100}>100</option>
             </select>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
           {/* Jump to page */}
-          <form onSubmit={handleJumpToPage} className="flex items-center space-x-2">
-            <label className="text-sm text-gray-700">Go to:</label>
+          <form onSubmit={handleJumpToPage} className="flex items-center gap-2">
+            <label className="text-sm text-muted-foreground">Go to:</label>
             <input
               type="number"
               min="1"
               max={safeTotalPages}
               value={jumpToPage}
               onChange={(e) => setJumpToPage(e.target.value)}
-              placeholder="Page"
-              className="w-16 border border-gray-300 rounded-md text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="#"
+              className="input-field h-9 w-16 text-sm text-center"
             />
             <button
               type="submit"
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
             >
               Go
             </button>
           </form>
 
           {/* Page navigation */}
-          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-            <button
-              onClick={() => onPageChange(safeCurrentPage - 1)}
-              disabled={safeCurrentPage === 1}
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeftIcon className="h-5 w-5" />
-            </button>
+          <nav className="flex items-center gap-1">
+            <NavButton 
+              direction="left" 
+              double 
+              onClick={() => onPageChange(1)} 
+              disabled={safeCurrentPage === 1} 
+            />
+            <NavButton 
+              direction="left" 
+              onClick={() => onPageChange(safeCurrentPage - 1)} 
+              disabled={safeCurrentPage === 1} 
+            />
 
-            {getPageNumbers().map((page, index) => (
-              <button
-                key={index}
-                onClick={() => typeof page === 'number' && onPageChange(page)}
-                disabled={page === '...'}
-                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${page === safeCurrentPage
-                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                  : page === '...'
-                    ? 'border-gray-300 bg-white text-gray-500 cursor-default'
-                    : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
-                  }`}
-              >
-                {page}
-              </button>
-            ))}
+            <div className="flex items-center gap-1 mx-1">
+              {getPageNumbers().map((page, index) => (
+                <PageButton
+                  key={index}
+                  page={page}
+                  isActive={page === safeCurrentPage}
+                  disabled={page === '...'}
+                  onClick={() => typeof page === 'number' && onPageChange(page)}
+                />
+              ))}
+            </div>
 
-            <button
-              onClick={() => onPageChange(safeCurrentPage + 1)}
-              disabled={safeCurrentPage === safeTotalPages}
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRightIcon className="h-5 w-5" />
-            </button>
+            <NavButton 
+              direction="right" 
+              onClick={() => onPageChange(safeCurrentPage + 1)} 
+              disabled={safeCurrentPage === safeTotalPages} 
+            />
+            <NavButton 
+              direction="right" 
+              double 
+              onClick={() => onPageChange(safeTotalPages)} 
+              disabled={safeCurrentPage === safeTotalPages} 
+            />
           </nav>
         </div>
       </div>
-    </div>
+    </Card>
   )
-}
+})
+
+export default Pagination

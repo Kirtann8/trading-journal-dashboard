@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import {
   ChartBarIcon,
   CurrencyDollarIcon,
@@ -9,101 +10,107 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline'
 import { formatCurrency, formatPercentage, formatRatio, getPnLColor, getTrendDirection } from '../lib/dashboard-utils'
+import StatCard from '@/components/ui/StatCard'
 
-export default function StatsGrid({ stats }) {
+const StatsGrid = memo(function StatsGrid({ stats }) {
   if (!stats) return null
 
-  const getTrendIcon = (current, previous) => {
+  const getTrendType = (current, previous) => {
     const direction = getTrendDirection(current, previous)
-    if (direction === 'neutral') return null
-    return direction === 'up' ? (
-      <TrendingUpIcon className="h-4 w-4 text-success" />
-    ) : (
-      <TrendingDownIcon className="h-4 w-4 text-destructive" />
-    )
+    if (direction === 'up') return 'positive'
+    if (direction === 'down') return 'negative'
+    return 'neutral'
+  }
+
+  const calculateChange = (current, previous) => {
+    if (!previous || previous === 0) return null
+    const change = ((current - previous) / Math.abs(previous)) * 100
+    return Math.abs(change).toFixed(1)
   }
 
   const statCards = [
     {
-      label: 'Total Trades',
+      title: 'Total Trades',
       value: stats.totalTrades || 0,
       icon: ChartBarIcon,
-      color: 'bg-blue-500/10 text-blue-500',
-      trend: getTrendIcon(stats.totalTrades, stats.previousTotalTrades)
+      iconBg: 'bg-blue-500/15',
+      iconColor: 'text-blue-400',
+      change: calculateChange(stats.totalTrades, stats.previousTotalTrades),
+      changeType: getTrendType(stats.totalTrades, stats.previousTotalTrades),
+      description: 'all time'
     },
     {
-      label: 'Open Trades',
+      title: 'Open Trades',
       value: stats.openTrades || 0,
       icon: ClockIcon,
-      color: 'bg-yellow-500/10 text-yellow-500',
-      trend: getTrendIcon(stats.openTrades, stats.previousOpenTrades)
+      iconBg: 'bg-amber-500/15',
+      iconColor: 'text-amber-400',
+      change: calculateChange(stats.openTrades, stats.previousOpenTrades),
+      changeType: getTrendType(stats.openTrades, stats.previousOpenTrades),
+      description: 'active positions'
     },
     {
-      label: 'Closed Trades',
+      title: 'Closed Trades',
       value: stats.closedTrades || 0,
       icon: ChartBarIcon,
-      color: 'bg-purple-500/10 text-purple-500',
-      trend: getTrendIcon(stats.closedTrades, stats.previousClosedTrades)
+      iconBg: 'bg-violet-500/15',
+      iconColor: 'text-violet-400',
+      change: calculateChange(stats.closedTrades, stats.previousClosedTrades),
+      changeType: getTrendType(stats.closedTrades, stats.previousClosedTrades),
+      description: 'completed'
     },
     {
-      label: 'Win Rate',
+      title: 'Win Rate',
       value: formatPercentage(stats.winRate),
       icon: TrendingUpIcon,
-      color: stats.winRate >= 50 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive',
-      trend: getTrendIcon(stats.winRate, stats.previousWinRate)
+      iconBg: stats.winRate >= 50 ? 'bg-success/15' : 'bg-destructive/15',
+      iconColor: stats.winRate >= 50 ? 'text-success' : 'text-destructive',
+      change: calculateChange(stats.winRate, stats.previousWinRate),
+      changeType: getTrendType(stats.winRate, stats.previousWinRate),
+      description: 'vs last period'
     },
     {
-      label: 'Total PnL',
+      title: 'Total P&L',
       value: formatCurrency(stats.totalPnL),
       icon: CurrencyDollarIcon,
-      color: stats.totalPnL >= 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive',
-      trend: getTrendIcon(stats.totalPnL, stats.previousTotalPnL),
-      valueColor: getPnLColor(stats.totalPnL)
+      iconBg: stats.totalPnL >= 0 ? 'bg-success/15' : 'bg-destructive/15',
+      iconColor: stats.totalPnL >= 0 ? 'text-success' : 'text-destructive',
+      change: calculateChange(stats.totalPnL, stats.previousTotalPnL),
+      changeType: getTrendType(stats.totalPnL, stats.previousTotalPnL),
+      description: 'total profit/loss'
     },
     {
-      label: 'Average RR',
+      title: 'Average R:R',
       value: formatRatio(stats.avgRR),
       icon: ScaleIcon,
-      color: 'bg-orange-500/10 text-orange-500',
-      trend: getTrendIcon(stats.avgRR, stats.previousAvgRR)
+      iconBg: 'bg-orange-500/15',
+      iconColor: 'text-orange-400',
+      change: calculateChange(stats.avgRR, stats.previousAvgRR),
+      changeType: getTrendType(stats.avgRR, stats.previousAvgRR),
+      description: 'risk/reward ratio'
     }
   ]
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-foreground">Trading Statistics</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">Trading Statistics</h2>
+        <span className="text-sm text-muted-foreground">Last 30 days</span>
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statCards.map((stat, index) => {
-          const IconComponent = stat.icon
-
-          return (
-            <div
-              key={index}
-              className="glass-card rounded-xl p-6 hover:shadow-lg transition-all hover:-translate-y-0.5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className={`p-3 rounded-lg ${stat.color}`}>
-                    <IconComponent className="h-6 w-6" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                    <p className={`text-2xl font-bold ${stat.valueColor || 'text-foreground'}`}>
-                      {stat.value}
-                    </p>
-                  </div>
-                </div>
-                {stat.trend && (
-                  <div className="flex-shrink-0 bg-background/50 p-1.5 rounded-full">
-                    {stat.trend}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {statCards.map((stat, index) => (
+          <div 
+            key={stat.title}
+            className="animate-fade-up"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <StatCard {...stat} />
+          </div>
+        ))}
       </div>
     </div>
   )
-}
+})
+
+export default StatsGrid

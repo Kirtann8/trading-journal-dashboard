@@ -181,9 +181,9 @@ export default function ProfileForm({ profile, onUpdate, isLoading }) {
               }`}
           >
             <option value="">Select preference</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+            <option value="Low">Low</option>
+            <option value="Med">Medium</option>
+            <option value="High">High</option>
           </select>
         </div>
 
@@ -200,9 +200,9 @@ export default function ProfileForm({ profile, onUpdate, isLoading }) {
               }`}
           >
             <option value="">Select level</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Expert">Expert</option>
           </select>
         </div>
       </div>
