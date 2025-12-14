@@ -72,6 +72,7 @@ const Avatar = memo(({
         ${!src || imageError ? `bg-gradient-to-br ${getColorClass(name)}` : ''}
       `}>
         {src && !imageError ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={src}
             alt={alt || name || 'Avatar'}

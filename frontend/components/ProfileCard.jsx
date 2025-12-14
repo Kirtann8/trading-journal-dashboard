@@ -47,6 +47,7 @@ const ProfileCard = memo(function ProfileCard({ profile, onEdit }) {
           <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-accent p-0.5 shadow-glow">
             <div className="w-full h-full rounded-2xl bg-background flex items-center justify-center overflow-hidden">
               {profile.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profile.avatar}
                   alt="Profile"
