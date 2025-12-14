@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import TradeForm from '../../../../components/TradeForm'
 import LoadingSkeleton from '../../../../components/LoadingSkeleton'
@@ -18,11 +18,7 @@ export default function EditTradePage() {
   const params = useParams()
   const tradeId = params.id
 
-  useEffect(() => {
-    fetchTrade()
-  }, [tradeId])
-
-  const fetchTrade = async () => {
+  const fetchTrade = useCallback(async () => {
     setLoading(true)
     setError('')
 
@@ -43,7 +39,11 @@ export default function EditTradePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [tradeId])
+
+  useEffect(() => {
+    fetchTrade()
+  }, [fetchTrade])
 
   const handleSubmit = async (tradeData) => {
     setIsSubmitting(true)
