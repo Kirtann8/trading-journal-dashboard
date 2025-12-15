@@ -172,7 +172,7 @@ export default function LoginPage() {
                 className="w-full"
                 rightIcon={!isSubmitting && <ArrowRightIcon className="w-4 h-4" />}
               >
-                {isSubmitting ? 'Signing in...' : 'Sign in'}
+                {isSubmitting ? 'Signing in... (server may need ~30s to wake up)' : 'Sign in'}
               </Button>
             </form>
 

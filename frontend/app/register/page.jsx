@@ -293,7 +293,7 @@ export default function RegisterPage() {
                 className="w-full mt-2"
                 rightIcon={!isSubmitting && <ArrowRightIcon className="w-4 h-4" />}
               >
-                {isSubmitting ? 'Creating account...' : 'Create account'}
+                {isSubmitting ? 'Creating account... (server may need ~30s to wake up)' : 'Create account'}
               </Button>
             </form>
 

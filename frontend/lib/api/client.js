@@ -3,7 +3,7 @@ import { getToken, removeToken } from '../auth-storage';
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 seconds to handle cold starts on free tier hosting
   headers: {
     'Content-Type': 'application/json',
   },
